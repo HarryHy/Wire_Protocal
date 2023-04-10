@@ -1,0 +1,23 @@
+{
+    "xinyu": {
+        "sally": [
+            "hello",
+            "hi",
+            "write file to json ",
+            "this user is not login at this point",
+            "I am Pavlous, ",
+            "are you online ?",
+            "no ",
+            "yes I am online "
+        ]
+    },
+    "sally": {
+        "carmen": [
+            "hi, carmen long time no see",
+            "hihi"
+        ],
+        "xinyu": [
+            "I'm good"
+        ]
+    }
+}

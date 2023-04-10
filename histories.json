@@ -1,0 +1,38 @@
+{
+    "xinyu": {
+        "sally": [
+            "carmen"
+        ],
+        "carmen": [
+            "lily"
+        ],
+        "lily": [
+            "sophy"
+        ],
+        "sophy": [
+            "eva"
+        ],
+        "eva": [
+            "kim"
+        ],
+        "kloe": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+        ],
+        "hahaha": [
+            "hihi"
+        ]
+    },
+    "sally": {
+        "carmen": [
+            "hi, carmen long time no see",
+            "hihi"
+        ],
+        "xinyu": []
+    }
+}
