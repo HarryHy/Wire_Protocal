@@ -601,6 +601,24 @@ class Server:
             self.LastApplied += 1
             self.broadcast_client(content)
             self.sendHeartbeat()
+    
+    def rec_logins(self, logins_set):
+        print("line 605 content is")
+        print('receive update logs request')
+        msg = {'Login': 'LogRequest', 'Content': self.logins, 'term': self.current_term, 'index': len(self.log)}
+        if self.server_id != self.leader_id:
+            print(' Transfer to leader')
+            self.sendMessage(self.leader_id, msg)
+        else:
+            print('log record client')
+            del msg['Login']
+            self.log.append(msg)
+            print(self.log)
+            self.CommitIndex += 1
+            self.LastApplied += 1
+            #self.broadcast_client(content)
+            self.sendHeartbeat()
+
 
     def loginSuccess(self, client, username, old_name):
         welcome = 'Welcome %s! If you want to quit, type {quit} to exit.' % username
@@ -820,6 +838,7 @@ class Server:
                         print(talkto + " is a valid user")
                         client.send("VALTALKTO".encode('ascii'))
                         self.logins.add(username)
+                        self.rec_logins()
                     else:
                         client.send("INVALTALKTO".encode('ascii'))
                         # lists = pickle.dumps(list(data.keys()))
@@ -884,8 +903,23 @@ class Server:
                     if server:
                         server.close()
                     break
+
+                elif operation.startswith("CHATTT"):
+                    '''
+                    this happens if the user reconncts to the server
+                    '''
+                    # reconnection and 
+                    last_info = self.log[-1]['Content']
+                    # assuming the last_info is not a set
+                    user_talk_to = last_info.split("~")[1]
+                    user_itself = last_info.split("~")[2]
+                    l1 = len(user_talk_to)
+                    l2 = len(user_itself)
+                    talkto = user_talk_to
+                    username = user_itself 
+                    self.message_receiver(client, user_talk_to, user_itself)
                 else:
-                    print("operation is not supportted")
+                    print(" line 888 operation is not supportted")
                     if client:
                         client.close()
                     break
@@ -1023,6 +1057,7 @@ class Server:
                         print(talkto + " is a valid user")
                         client.send("VALTALKTO".encode('ascii'))
                         self.logins.add(username)
+                        self.rec_logins()
                     else:
                         client.send("INVALTALKTO".encode('ascii'))
                         # lists = pickle.dumps(list(data.keys()))
@@ -1088,7 +1123,7 @@ class Server:
                         server.close()
                     break
                 else:
-                    print("operation is not supportted")
+                    print("line 1090 operation is not supportted")
                     if client:
                         client.close()
                     break
@@ -1099,6 +1134,12 @@ class Server:
             if client:
                 client.close()
 
+    def get_last_set_value(self, input_list):
+        print("line 1138")
+        for item in reversed(input_list):
+            if isinstance(item['Content'], set):
+                return item['Content']
+        return None
 
     def message_receiver(self, client, talkto, user):
         """
@@ -1109,6 +1150,10 @@ class Server:
         print("talk to is ", talkto, " user is ", user)
         try:
             while True:
+                # update the self.logins with the log
+                res = self.get_last_set_value(self.log)
+                if res is not None:
+                    self.logins = res
                 if talkto in self.logins:
                     client.send("CHATNOW".encode('ascii'))
                     recv_message = client.recv(1024).decode('ascii')
@@ -1123,6 +1168,7 @@ class Server:
                         #user log out 
                         self.clients.pop(user_itself)
                         self.logins.remove(user_itself)
+                        self.rec_logins()
                         # TODO Do we need to close the client when exit???
 
                     elif user_message == "\switch":
@@ -1148,6 +1194,7 @@ class Server:
                         #user log out 
                         self.clients.pop(user_itself)
                         self.logins.remove(user_itself)
+                        self.rec_logins()
                         raise delete_account_exception("deleted")
 
                     else:
@@ -1166,6 +1213,7 @@ class Server:
                         #user log out 
                         self.clients.pop(user_itself)
                         self.logins.remove(user_itself)
+                        self.rec_logins()
                         client.send("EXIT".encode('ascii'))
                         return
 
@@ -1193,6 +1241,7 @@ class Server:
                         #user log out 
                         self.clients.pop(user_itself)
                         self.logins.remove(user_itself)
+                        self.rec_logins()
                         raise delete_account_exception("deleted")
 
 
@@ -1236,6 +1285,7 @@ class Server:
             print(e)
             self.clients.pop(user)
             self.logins.remove(user)
+            self.rec_logins()
             if client:
                 client.close()
 

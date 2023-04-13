@@ -71,9 +71,9 @@ class Client():
 
     def reconnect(self):
 
-        print(";ine 75 ", self.client)
+        #print(";ine 75 ", self.client)
         #if not self.client:
-        print("no client")
+        print("reconnect")
         start = time.time()
 # CONFIG = json.load(open("config.json"))
 
@@ -103,8 +103,8 @@ class Client():
                 self.client.close()
                 #f.close()
                 continue
-        print("self.client is --------------------------------- ", self.client)
-        print(self.client)
+        #print("self.client is --------------------------------- ", self.client)
+        #print(self.client)
 
     def start_receive_thread(self):
         if self.receive_thread is not None and self.receive_thread.is_alive():
@@ -539,21 +539,36 @@ class Client():
         If there are any queued messages, it receives them and displays them. 
         Then, it sends a message to the server to start the chat, and starts two threads to handle writing and receiving messages.
         """
-        self.choose_talkto()
-        self.client.send('STARTHIST'.encode('ascii'))
-        print("finish client.send('STARTHIST'.encode('ascii'))")
-        # receive all the queued messages
-        flag = self.client.recv(1024).decode('ascii')
-        print("flag is ", flag)
-        if flag != "EMPTY":
-            list_bytes = self.client.recv(4096)
-            #print("list_bytes is ", list_bytes)
-            list_messages = pickle.loads(list_bytes)
-            for m in list_messages:
-                print(talkto + " : " + m)
-        print("--------------start to chat-----------------")
-        # after receive the history, start to chat
-        self.client.send('STARTCHAT'.encode('ascii'))
+        try:
+            self.choose_talkto()
+            self.client.send('STARTHIST'.encode('ascii'))
+            print("finish client.send('STARTHIST'.encode('ascii'))")
+            # receive all the queued messages
+            flag = self.client.recv(1024).decode('ascii')
+            print("flag is ", flag)
+            if flag != "EMPTY":
+                list_bytes = self.client.recv(4096)
+                #print("list_bytes is ", list_bytes)
+                list_messages = pickle.loads(list_bytes)
+                for m in list_messages:
+                    print(talkto + " : " + m)
+            print("--------------start to chat-----------------")
+            # after receive the history, start to chat
+            self.client.send('STARTCHAT'.encode('ascii'))
+        except Exception as e:
+            print("line 559 ", e)
+            '''
+            if self.client:
+                self.client.close()
+            '''
+            print("start to reconnect")
+            self.reconnect()
+            #self.start_conversation()
+        
+        print("start to talk")
+        self.talking()
+
+    def talking(self):
         try:
             global write_thread
             write_thread = threading.Thread(target=self.write_messages)
@@ -571,12 +586,16 @@ class Client():
             self.start_conversation()
 
         except Exception as e:
+            print("line 586")
             print('Error Occurred: ', e)
             write_thread.join()
             receive_thread.join()
             if self.client:
                 self.client.close()
-
+            print("line 592 ", e)
+            print("start to reconnect")
+            self.reconnect()
+            self.talking()
 
     def write_messages(self):
         """
@@ -616,9 +635,20 @@ class Client():
 
             
             self.start_conversation()
-            
+        
         except Exception as e:
-            print('Error Occurred: ', e)
+            #raise Exception("line 638 reconnection")
+            write_thread.join()
+            if self.client:
+                self.client.close()
+            print("line 642 ", e)
+            print("start to reconnect")
+            self.reconnect()
+            #global write_thread
+            write_thread = threading.Thread(target=self.write_messages)
+            write_thread.start()
+            #self.talking()
+            
 
 
     def receive_messages(self):
@@ -655,9 +685,14 @@ class Client():
 
             except delete_account_exception:
                 return delete_account_exception("bye bye~")
-
             except Exception as e:
-                print('Error Occurred: ', e)
+                #raise Exception("line 674 reconnection")
+                if self.client:
+                    self.client.close()
+                print("line 690 ", e)
+                print("start to reconnect")
+                self.reconnect()
+                self.receive_messages()
 
 
 
